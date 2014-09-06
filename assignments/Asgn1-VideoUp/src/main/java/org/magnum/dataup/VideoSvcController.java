@@ -17,6 +17,7 @@ import org.magnum.dataup.model.Video;
 import org.magnum.dataup.model.VideoStatus;
 import org.magnum.dataup.model.VideoStatus.VideoState;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -70,32 +71,45 @@ public class VideoSvcController  {
 	}
 	
 	@RequestMapping(value=VIDEO_DATA_PATH, method=RequestMethod.POST)
-	public @ResponseBody VideoStatus setVideoData(@RequestParam long id, @RequestParam("data") MultipartFile videoData) throws IOException
+	public @ResponseBody VideoStatus setVideoData(
+			@PathVariable("id") long id,
+			@RequestParam("data") MultipartFile videoData,
+			HttpServletResponse resp ) throws IOException
 	{
-		InputStream inputStream = videoData.getInputStream();
+		if (videoMap.containsKey(id)) {
+			
+			Video v = videoMap.get(id);
+			vFM = VideoFileManager.get();
 		
-		Video v = videoMap.get(id);
-		vFM = VideoFileManager.get();
-		
-		if (!vFM.hasVideoData(v))
-			vFM.saveVideoData(v, inputStream);
+			if (!vFM.hasVideoData(v))
+				vFM.saveVideoData(v, videoData.getInputStream());
+		}	
+		else {
+			resp.sendError(404, "Video id does not exist");
+		}
 		
 		VideoStatus videoStatus = new VideoStatus(VideoState.READY);
 		return videoStatus;
 	}
 	
 	@RequestMapping(value=VIDEO_DATA_PATH, method=RequestMethod.GET)
-	public HttpServletResponse getData(long id, HttpServletResponse resp) throws IOException
-	{
+	public HttpServletResponse getData(@PathVariable("id") long id, HttpServletResponse resp) throws IOException
+	{		
 		if (!videoMap.containsKey(id)) {
-			resp.sendError(404, "Video does not exist");
+			resp.sendError(404, "Video id does not exist");
 			return resp;
 		}
 
 		Video v = videoMap.get(id);
 		vFM = VideoFileManager.get();
 		
-		return null;
+		if (!vFM.hasVideoData(v)) {
+			resp.sendError(404, "Video data does not exist " + vFM.getVideoPath(v));
+			return resp;
+		}	
+	
+		vFM.copyVideoData(v, resp.getOutputStream());
+		return resp;
 	}
 	
 	
