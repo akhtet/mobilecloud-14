@@ -107,6 +107,7 @@ public class AutoGradingTest {
 	@Test
 	public void testAddGetVideo() throws Exception {
 		readWriteVideoSvcUser1.addVideo(video);
+		System.err.println("AUNG : " + video.getName() + "|" + video.getUrl() + "|" + Long.toString(video.getDuration()));
 		Collection<Video> stored = readWriteVideoSvcUser1.getVideoList();
 		assertTrue(stored.contains(video));
 	}
